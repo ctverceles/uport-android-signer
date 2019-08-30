@@ -15,7 +15,10 @@ import org.kethereum.bip39.validate
 import org.kethereum.bip39.wordlists.WORDLIST_ENGLISH
 import org.kethereum.crypto.signMessage
 import org.kethereum.crypto.toAddress
+import org.kethereum.extensions.toBigInteger
 import org.kethereum.model.SignatureData
+import org.web3j.crypto.ECKeyPair
+import org.web3j.crypto.Sign
 import java.security.SecureRandom
 
 @Suppress("unused", "KDocUnresolvedReference")
@@ -202,6 +205,55 @@ class UportHDSigner : UportSigner() {
                 val sig = signJwt(payloadBytes, keyPair)
 
                 return@decrypt callback(null, sig)
+            } catch (signError: Exception) {
+                return@decrypt callback(signError, SignatureData())
+            }
+        }
+    }
+
+    /**
+     * Signs a uPort specific JWT bundle using a key derived from a previously imported/created seed.
+     *
+     * In case the seed corresponding to the [rootAddress] requires user authentication to decrypt,
+     * this method will launch the decryption UI with a [prompt] and schedule a callback with the signature data
+     * after the decryption takes place; or a non-null error in case something goes wrong (or user cancels)
+     *
+     * The decryption UI can be a device lockscreen or fingerprint-dialog depending on the level of encryption
+     * requested at seed creation/import.
+     *
+     * @param context The android activity from which the signature is requested or app context if it's encrypted using [KeyProtection.Level.SIMPLE]] protection
+     * @param rootAddress the 0x ETH address used to refer to the previously imported/created seed
+     * @param data the base64 encoded byte array that represents the payload to be signed
+     * @param prompt A string that needs to be displayed to the user in case user-auth is requested
+     * @param callback (error, signature) called after the transaction has been signed successfully or
+     * with an error and empty data when it fails
+     */
+    fun signJwtBundleSHA3Web3j(context: Context, rootAddress: String, derivationPath: String, data: String, prompt: String, callback: (err: Exception?, sigData: SignatureData) -> Unit) {
+
+        val (encryptionLayer, encryptedEntropy, storageError) = getEncryptionForLabel(context, asSeedLabel(rootAddress))
+
+        if (storageError != null) {
+            return callback(storageError, SignatureData())
+        }
+
+        encryptionLayer.decrypt(context, prompt, encryptedEntropy) { decryptError, entropyBuff ->
+            if (decryptError != null) {
+                return@decrypt callback(decryptError, SignatureData())
+            }
+
+            try {
+                val phrase = entropyToMnemonic(entropyBuff, WORDLIST_ENGLISH)
+                val extendedKey = MnemonicWords(phrase).toKey(derivationPath)
+
+                val keyPair = extendedKey.keyPair
+                val web3jKeyPair = ECKeyPair.create(keyPair.privateKey.key)
+
+                val payloadBytes = data.decodeBase64()
+
+                val sig = Sign.signMessage(payloadBytes, web3jKeyPair,true)
+                val sigData = SignatureData(sig.r.toBigInteger(), sig.s.toBigInteger(), sig.v)
+
+                return@decrypt callback(null, sigData)
             } catch (signError: Exception) {
                 return@decrypt callback(signError, SignatureData())
             }

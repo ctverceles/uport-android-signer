@@ -246,7 +246,7 @@ open class UportSigner {
     }
 
     @VisibleForTesting(otherwise = PACKAGE_PRIVATE)
-    internal fun signJwt(payloadBytes: ByteArray, keyPair: ECKeyPair) = signMessageHash(payloadBytes.sha3(), keyPair, false)
+    internal fun signJwt(payloadBytes: ByteArray, keyPair: ECKeyPair) = signMessageHash(payloadBytes.sha256(), keyPair, false)
 
     /**
      * Builds a list of all the saved eth addresses (that also have encrypted private keys tracked)

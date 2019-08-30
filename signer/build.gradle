@@ -64,4 +64,6 @@ dependencies {
 
     testImplementation "com.willowtreeapps.assertk:assertk-jvm:$assertk_version"
     testImplementation "com.github.komputing.KEthereum:bip44:$kethereum_version"
+
+    implementation 'org.web3j:core:4.2.0-android'
 }

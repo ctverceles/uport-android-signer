@@ -23,6 +23,8 @@ import org.kethereum.model.PrivateKey
 import org.spongycastle.util.encoders.Hex
 import org.walleth.khex.hexToByteArray
 import org.walleth.khex.toNoPrefixHexString
+import org.web3j.crypto.ECKeyPair
+import org.web3j.crypto.Sign
 import java.math.BigInteger
 import java.util.*
 import java.util.concurrent.CountDownLatch
@@ -197,6 +199,26 @@ class SignerTests {
         val sigData = UportSigner().signJwt(msg, keyPair).getDerEncoded()
 
         assertEquals(referenceSignature, sigData)
+    }
+
+    @Test
+    fun testJwtWeb3j() {
+        val referencePrivateKey = "81c533e348de5ace139051fb6041207546a2e25d03d66648561932903c7f8855"
+
+        val hexData = BigInteger("1900ae6d66df60426e04ac8ffb55fce2dbb335ce336c000000000000000000000000000000000000000000000000000000000000000073911cead9aca162333f5da6b4fd147793e075447365744174747269627574656466647366647366000000000000000000000000000000000000000000000000647373667366730000000000000000000000000000000000000000000000000000000000278d00", 16).toByteArray();
+
+        val pvtKey = BigInteger(referencePrivateKey, 16);
+        val keyPair = ECKeyPair.create(pvtKey);
+
+        val signedData = Sign.signMessage(hexData, keyPair)
+
+        val R = signedData.r.toNoPrefixHexString()
+        val S = signedData.s.toNoPrefixHexString()
+        val V = signedData.v.toInt().toString()
+
+        assertEquals("c656469c688d1f1d42a12b1f2520e86cd615b6678b9e9cd0218ef221892eb9b8", R.toLowerCase())
+        assertEquals("0c382761b52f7469482f3ed83f09240b5010db000b8375d3df2875afa4cddfb7", S.toLowerCase())
+        assertEquals("27", V)
     }
 
     @Test
