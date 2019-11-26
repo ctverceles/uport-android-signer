@@ -1,5 +1,8 @@
 ## Uport android signer
 
+### Fork Notes
+I've forked this repo and integrated the web3j SHA3 signing mechanism into a new `UportHDSigner.signJwtBundleSHA3Web3j` function. The reason for doing this was that I needed to replicate the wallet derivation and message signing mechanism of ethers.js (used on a NodeJS backend to verify signed messages using the ecrecover function) on an Android native app rather than a React.Native app that would simply use the same ethers.js library. After thorough unit testing, I found that the wallet derivation of this uPort android signer was consistent with the ethers.js wallet deriviation. However, the existing `UportHDSigner.signJwtBundle` function in the master branch of the original repo https://github.com/uport-project/uport-android-signer did not seem to produce the same signature (R, S, V components) as ethers.js in my own testing, but the `Sign.signMessage` function in https://github.com/web3j/web3j did. So what I've done is to simply make my own function `UportHDSigner.signJwtBundleSHA3Web3j` that used the web3j `Sign.signMessage` function instead and then reference this forked repo using `implementation "com.github.ctverceles:uport-android-signer:0.3.4"` in my app build.gradle
+
 [![](https://jitpack.io/v/uport-project/uport-android-signer.svg)](https://jitpack.io/#uport-project/uport-android-signer)
 [![CircleCI](https://circleci.com/gh/uport-project/uport-android-signer.svg?style=svg)](https://circleci.com/gh/uport-project/uport-android-signer)
 
